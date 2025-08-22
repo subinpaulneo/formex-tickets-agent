@@ -1,0 +1,80 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%; /* Make it take full width of its parent (#root) */
+  max-width: 900px; /* Slightly wider max-width */
+  height: 100%; /* Make it take full height of its parent (#root) */
+  border: 1px solid #444; /* Darker border */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* More prominent shadow */
+  background-color: #333; /* Dark background for the chat container */
+  overflow: hidden; /* Hide overflow for rounded corners */
+}
+
+.message-list {
+  flex-grow: 1;
+  padding: 15px;
+  overflow-y: auto; /* Enable scrolling for messages */
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Space between messages */
+}
+
+.message {
+  margin-bottom: 5px; /* Reduce margin */
+  padding: 10px 15px;
+  border-radius: 18px; /* More rounded message bubbles */
+  max-width: 80%; /* Allow messages to be a bit wider */
+  word-wrap: break-word; /* Ensure long words break */
+  color: #e0e0e0; /* Light text color for all messages */
+}
+
+.message.user {
+  align-self: flex-end;
+  background-color: #007bff; /* Blue for user messages */
+  color: white; /* White text for user messages */
+  border-bottom-right-radius: 4px; /* Slightly less rounded on one corner */
+}
+
+.message.agent {
+  align-self: flex-start;
+  background-color: #555; /* Darker grey for agent messages */
+  color: #e0e0e0; /* Light text for agent messages */
+  border-bottom-left-radius: 4px; /* Slightly less rounded on one corner */
+}
+
+.input-area {
+  display: flex;
+  padding: 15px;
+  border-top: 1px solid #444; /* Darker border */
+  background-color: #2a2a2a; /* Darker background for input area */
+}
+
+.input-area input {
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: 1px solid #555; /* Darker border */
+  border-radius: 20px; /* Fully rounded input field */
+  margin-right: 10px;
+  background-color: #444; /* Dark input background */
+  color: #e0e0e0; /* Light text color for input */
+  outline: none; /* Remove outline on focus */
+}
+
+.input-area input::placeholder {
+  color: #bbb; /* Lighter placeholder text */
+}
+
+.input-area button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px; /* Fully rounded button */
+  cursor: pointer;
+  transition: background-color 0.2s ease; /* Smooth transition on hover */
+}
+
+.input-area button:hover {
+  background-color: #0056b3;
+}

@@ -1,0 +1,39 @@
+# Operating System and IDE specific files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*~
+
+# Python specific ignores
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+
+# Environment variables file
+.env
+
+# ChromaDB persistent storage
+vector_db/
+
+# Node.js / Frontend specific ignores
+node_modules/
+dist/
+build/
+.vite/
+
+# Resume state log for batch fetch script
+last_processed_ticket_id.log
+
+# Ignore all CSV files
+*.csv

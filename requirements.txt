@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+requests
+
+# For data handling and vector DB
+pandas
+chromadb
+sentence-transformers
+
+google-generativeai
+tenacity
+
+# For Agentic AI system
+smolagents[transformers]
+torch
+accelerate
