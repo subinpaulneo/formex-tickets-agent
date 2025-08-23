@@ -15,3 +15,8 @@ tenacity
 smolagents[transformers]
 torch
 accelerate
+
+# For local LLM
+transformers
+sentencepiece
+outlines

@@ -86,23 +86,112 @@ GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 
 #### e. Ingest Your Data
 
-Run the ingestion script to process your data and load it into the ChromaDB vector database. This step will also automatically categorize your tickets using an LLM.
+Run the ingestion script to process your data and load it into the ChromaDB vector database. This step is crucial as it populates the database that the agents rely on.
+
+**Running the Ingestion Script**
+
+The ingestion script, `src/ingest.py`, processes your data and then chunks the documents, generates embeddings, and stores them in the ChromaDB database.
+
+To run the script, use the following command:
 
 ```bash
 python src/ingest.py
 ```
 
-*   **Important**: This step must be completed successfully before starting the backend API, as the agents rely on the populated database.
+**Optional: Ingestion Options**
+
+By default, the ingestion script will process both ticket data from `gorgias_tickets.csv` and knowledge documents from `data/knowledge/`. It will also add new data to the existing collection and use the Gemini API for ticket processing.
+
+You can use the following flags to customize the ingestion behavior:
+
+*   `--clear-db`: Clears the existing database collection before ingesting new data.
+*   `--use-local-llm`: Uses a local Gemma model for ticket processing instead of the Gemini API.
+*   `--ingest-tickets`: Ingests only ticket data. If this flag is used, knowledge documents will be skipped.
+*   `--ingest-knowledge`: Ingests only knowledge base data. If this flag is used, ticket data will be skipped.
+
+You can use these flags separately or together. For example:
+
+```bash
+# Clear the database and ingest only knowledge base data
+python src/ingest.py --clear-db --ingest-knowledge
+
+# Ingest only ticket data using the local LLM
+python src/ingest.py --ingest-tickets --use-local-llm
+```
+
+*   **Important**: The first time you run the ingestion script, it is recommended to use the `--clear-db` flag to ensure a clean database.
 
 #### f. Start the FastAPI Backend
 
-Once data ingestion is complete, start the FastAPI application:
+Once data ingestion is complete, you can start the FastAPI application. You have two options:
+
+**Option 1: Use the Gemini API (Default)**
+
+This option uses the Google Gemini API for the agentic tasks. Make sure you have your `GEMINI_API_KEY` set in your `.env` file.
 
 ```bash
-uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
+python src/api.py
 ```
 
-*   The `--reload` flag is useful for development, as it restarts the server automatically on code changes.
+**Option 2: Use a Local LLM (Gemma)**
+
+This option uses a local Gemma model for the agentic tasks. This is useful for offline development or to avoid hitting API rate limits.
+
+```bash
+python src/api.py --use-local-llm
+```
+
+*   **Important**: The first time you run this command, it will download the Gemma model from Hugging Face, which may take a few minutes.
+
+By default, the application will run on `http://localhost:8000`. The `--reload` flag is useful for development, as it restarts the server automatically on code changes. If you want to use it, you can run `uvicorn src.api:app --reload --host 0.0.0.0 --port 8000`.
+
+#### g. Authenticate with Hugging Face
+
+To use the local Gemma model, you need to authenticate with a Hugging Face API token. This is because the Gemma models are "gated" and require you to agree to the terms of use.
+
+1.  **Request Access to the Model:**
+    *   Go to the Hugging Face model page for `google/gemma-3-270m-it`: [https://huggingface.co/google/gemma-3-270m-it](https://huggingface.co/google/gemma-3-270m-it)
+    *   Click on the "Access repository" button. You will need to be logged in to your Hugging Face account.
+    *   You will be asked to agree to the terms of use. Once you agree, you will be granted access to the model.
+
+2.  **Authenticate Your Environment:**
+    *   Once you have been granted access to the model, you need to authenticate your environment with a Hugging Face API token.
+    *   You can find your Hugging Face API token in your Hugging Face account settings: [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+    *   There are two ways to authenticate:
+        *   **Using the Hugging Face CLI:**
+            ```bash
+            huggingface-cli login
+            ```
+            This will prompt you to enter your Hugging Face API token.
+        *   **Setting an environment variable:**
+            You can set the `HUGGING_FACE_HUB_TOKEN` environment variable to your Hugging Face API token. You can add this to your `.env` file:
+            ```
+            HUGGING_FACE_HUB_TOKEN=YOUR_HUGGING_FACE_API_TOKEN
+            ```
+
+Once you have authenticated, you will be able to download and use the local Gemma model.
+
+Once data ingestion is complete, you can start the FastAPI application. You have two options:
+
+**Option 1: Use the Gemini API (Default)**
+
+This option uses the Google Gemini API for the agentic tasks. Make sure you have your `GEMINI_API_KEY` set in your `.env` file.
+
+```bash
+python src/api.py
+```
+
+**Option 2: Use a Local LLM (Gemma)**
+
+This option uses a local Gemma model for the agentic tasks. This is useful for offline development or to avoid hitting API rate limits.
+
+```bash
+python src/api.py --use-local-llm
+```
+
+*   **Important**: The first time you run this command, it will download the Gemma model from Hugging Face, which may take a few minutes.
+
+By default, the application will run on `http://localhost:8000`. The `--reload` flag is useful for development, as it restarts the server automatically on code changes. If you want to use it, you can run `uvicorn src.api:app --reload --host 0.0.0.0 --port 8000`.
 
 ### 3. Frontend Setup (React)
 
@@ -156,10 +245,22 @@ docker build -t agentic-rag-system .
 
 ### 2. Run the Docker Container
 
-Once the image is built, run the container. This will expose the FastAPI application on port 8000 of your host machine:
+Once the image is built, you can run the container. You have two options:
+
+**Option 1: Use the Gemini API (Default)**
+
+This option runs the application with the Gemini API for the agentic tasks.
 
 ```bash
 docker run -p 8000:8000 agentic-rag-system
+```
+
+**Option 2: Use a Local LLM (Gemma)**
+
+This option runs the application with the local Gemma model for the agentic tasks.
+
+```bash
+docker run -p 8000:8000 agentic-rag-system python src/api.py --use-local-llm
 ```
 
 *   The backend API will now be accessible at `http://localhost:8000`.

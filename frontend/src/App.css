@@ -26,7 +26,12 @@
   border-radius: 18px; /* More rounded message bubbles */
   max-width: 80%; /* Allow messages to be a bit wider */
   word-wrap: break-word; /* Ensure long words break */
+  white-space: normal; /* Let ReactMarkdown handle newlines */
   color: #e0e0e0; /* Light text color for all messages */
+}
+
+.message p {
+  margin-bottom: 0; /* Remove default paragraph margin */
 }
 
 .message.user {

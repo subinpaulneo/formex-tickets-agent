@@ -1,10 +1,12 @@
-from src.llm_utils import query_llm
 import json
+
+from src.llm_utils import query_llm, query_local_llm
 
 class TicketProcessorAgent:
     """Agent responsible for extracting structured information and categorizing tickets."""
-    def __init__(self):
-        print("TicketProcessorAgent initialized.")
+    def __init__(self, use_local_llm: bool = False):
+        self.use_local_llm = use_local_llm
+        print(f"TicketProcessorAgent initialized with use_local_llm={use_local_llm}.")
 
     def process_ticket(self, conversation: str) -> dict:
         """
@@ -31,31 +33,52 @@ class TicketProcessorAgent:
         Respond with ONLY a valid JSON object. The JSON object should have the following keys:
         "category", "problem", "steps_taken_to_solve", "final_solution".
 
+        Example JSON Response:
+        ```json
+        {{
+            "category": "Example Category",
+            "problem": "Example problem summary.",
+            "steps_taken_to_solve": "Example steps taken to solve.",
+            "final_solution": "Example final solution."
+        }}
+        ```
+
         --- TICKET CONVERSATION ---
         {conversation}
         --- END OF CONVERSATION ---
 
-        JSON Response:"""
+        JSON Response (ONLY the JSON object, no other text):
+        """
 
         print("[TicketProcessorAgent] Querying LLM for ticket processing...")
-        response = query_llm(prompt, json_mode=True)
+        if self.use_local_llm:
+            response_raw = query_local_llm(prompt)
+            try:
+                response = json.loads(response_raw)
+            except json.JSONDecodeError:
+                print(f"Error: Local LLM did not return valid JSON. Raw response: {response_raw}")
+                return None
+        else:
+            response = query_llm(prompt, json_mode=True)
 
         if isinstance(response, dict) and "error" in response:
             print(f"Error from LLM in TicketProcessorAgent: {response['error']}")
-            return {
-                "category": "LLM Error",
-                "problem": "Could not extract problem due to LLM error.",
-                "steps_taken_to_solve": "N/A",
-                "final_solution": "N/A",
-                "raw_llm_response": response.get("raw_response", "")
-            }
-        
-        # Ensure all expected keys are present, provide defaults if missing
+            return None
+
+        # Directly access keys from the parsed JSON response
+        category = response.get("category")
+        problem = response.get("problem")
+        steps_taken_to_solve = response.get("steps_taken_to_solve")
+        final_solution = response.get("final_solution")
+
+        if not all([category, problem, steps_taken_to_solve, final_solution]):
+            print(f"Warning: Could not extract all required fields from the LLM response. Raw response: {response}")
+            return None
+
         extracted_data = {
-            "category": response.get("category", "Uncategorized"),
-            "problem": response.get("problem", "No problem extracted."),
-            "steps_taken_to_solve": response.get("steps_taken_to_solve", "No steps extracted."),
-            "final_solution": response.get("final_solution", "No final solution extracted.")
+            "category": category,
+            "problem": problem,
+            "steps_taken_to_solve": steps_taken_to_solve,
+            "final_solution": final_solution
         }
-        
         return extracted_data

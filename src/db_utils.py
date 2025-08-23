@@ -38,6 +38,15 @@ def get_db_collection():
     print(f"Successfully connected to ChromaDB. Collection '{COLLECTION_NAME}' is ready.")
     return collection
 
+def clear_db_collection():
+    """Clears all data from the specified collection."""
+    print(f"Clearing all data from collection '{COLLECTION_NAME}'...")
+    client = chromadb.PersistentClient(path=DB_PATH)
+    client.delete_collection(name=COLLECTION_NAME)
+    # Recreate the collection after deleting it
+    get_db_collection()
+    print("Collection cleared and recreated.")
+
 if __name__ == '__main__':
     # This allows for testing the connection directly
     print("Testing database connection...")

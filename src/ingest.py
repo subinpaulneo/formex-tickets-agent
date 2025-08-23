@@ -3,11 +3,13 @@ import os
 import pandas as pd
 import glob
 from itertools import chain
+import time
+import argparse
 
 # Add the project root to sys.path for module discovery
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.db_utils import get_db_collection
+from src.db_utils import get_db_collection, clear_db_collection
 from src.ticket_processor_agent import TicketProcessorAgent
 
 # --- Constants ---
@@ -36,6 +38,10 @@ def process_ticket_group(group, ticket_processor_agent):
     # Process the ticket conversation with the TicketProcessorAgent
     processed_ticket_data = ticket_processor_agent.process_ticket(full_conversation)
 
+    if processed_ticket_data is None:
+        print(f"Skipping ticket {int(ticket_data['ticket_id'])} due to processing error.")
+        return None
+
     # Prepare metadata, merging original with processed data
     metadata = {
         "ticket_id": int(ticket_data['ticket_id']),
@@ -63,8 +69,11 @@ def process_tickets_in_chunks(ticket_processor_agent):
             if closed_tickets_chunk.empty:
                 continue
             for _, group in closed_tickets_chunk.groupby('ticket_id'):
-                yield process_ticket_group(group, ticket_processor_agent)
-                processed_tickets += 1
+                processed_group = process_ticket_group(group, ticket_processor_agent)
+                if processed_group:
+                    yield processed_group
+                    processed_tickets += 1
+                time.sleep(1) # Add a 1-second delay to avoid hitting rate limits
         print(f"  - Found and processed {processed_tickets} closed tickets.")
     except FileNotFoundError:
         print(f"Error: The file was not found at {CSV_PATH}")
@@ -115,14 +124,43 @@ def main():
     Main function to orchestrate the full ETL pipeline:
     Extract -> Transform (process, group, chunk) -> Load (embed, store).
     """
+    parser = argparse.ArgumentParser(description="Data ingestion pipeline for the Agentic RAG System.")
+    parser.add_argument("--clear-db", action="store_true", help="Clear the existing database collection before ingesting new data.")
+    parser.add_argument("--use-local-llm", action="store_true", help="Use the local LLM for ticket processing instead of the Gemini API.")
+    parser.add_argument("--ingest-tickets", action="store_true", help="Ingest only ticket data.")
+    parser.add_argument("--ingest-knowledge", action="store_true", help="Ingest only knowledge base data.")
+    args = parser.parse_args()
+
     print("Starting data ingestion pipeline...")
+    if args.clear_db:
+        clear_db_collection()
+    
     collection = get_db_collection()
-    ticket_processor_agent = TicketProcessorAgent() # Instantiate the agent
+    ticket_processor_agent = TicketProcessorAgent(use_local_llm=args.use_local_llm) # Instantiate the agent
 
     # E+T: Create a single generator for all documents, then chunk them
-    ticket_docs = process_tickets_in_chunks(ticket_processor_agent)
-    knowledge_docs = process_knowledge_files()
-    all_docs = chain(ticket_docs, knowledge_docs)
+    # Determine what to ingest based on arguments
+    ingest_tickets = args.ingest_tickets
+    ingest_knowledge = args.ingest_knowledge
+
+    # If neither is specified, ingest both by default
+    if not ingest_tickets and not ingest_knowledge:
+        ingest_tickets = True
+        ingest_knowledge = True
+
+    all_docs_generators = []
+    if ingest_tickets:
+        print("Ingesting ticket data...")
+        all_docs_generators.append(process_tickets_in_chunks(ticket_processor_agent))
+    if ingest_knowledge:
+        print("Ingesting knowledge base data...")
+        all_docs_generators.append(process_knowledge_files())
+
+    if not all_docs_generators:
+        print("No data type selected for ingestion. Please specify --ingest-tickets or --ingest-knowledge.")
+        return
+
+    all_docs = chain(*all_docs_generators)
     chunked_docs = (chunk for doc in all_docs for chunk in chunk_document(doc))
 
     # L: Load into ChromaDB in batches
