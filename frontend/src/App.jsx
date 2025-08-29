@@ -61,7 +61,11 @@ function App() {
       <div className="message-list">
         {messages.map((message, index) => (
           <div key={index} className={`message ${message.sender}`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+            {typeof message.text === 'string' ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+            ) : (
+              message.text // Render the React element directly
+            )}
           </div>
         ))}
         {isLoading && (

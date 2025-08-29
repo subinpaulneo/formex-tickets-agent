@@ -49,15 +49,22 @@ class KnowledgeWriterAgent:
         print(f"[KnowledgeWriterAgent] Received request to generate manual for: {topic}")
         try:
             print(f"[KnowledgeWriterAgent] Searching for context on '{topic}'...")
-            where_clause = {}
+            where_clause = None # Default to no filter
             if category_filter:
-                where_clause["category"] = category_filter
-                print(f"[KnowledgeWriterAgent] Filtering by category: {category_filter}")
+                # If a category is specified, search for documents that EITHER match the category
+                # OR are general knowledge documents. This ensures policies and macros are always included.
+                where_clause = {
+                    "$or": [
+                        {"category": category_filter},
+                        {"type": "knowledge"}
+                    ]
+                }
+                print(f"[KnowledgeWriterAgent] Filtering by category '{category_filter}' OR type 'knowledge'.")
 
             results = self.db_collection.query(
                 query_texts=[topic],
                 n_results=20,
-                where=where_clause if where_clause else None
+                where=where_clause
             )
             if not results or not results['documents']:
                 return f"No relevant context found for topic '{topic}' and category '{category_filter or 'any'}'."

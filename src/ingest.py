@@ -79,14 +79,25 @@ def process_tickets_in_chunks(ticket_processor_agent):
         print(f"Error: The file was not found at {CSV_PATH}")
         return
 
-def process_knowledge_files():
-    """Scans the knowledge directory and yields a document for each file."""
+def process_knowledge_files(specific_file=None):
+    """Scans the knowledge directory or a specific file and yields documents."""
     print("\nProcessing knowledge files...")
-    path_pattern = os.path.join(KNOWLEDGE_PATH, '**')
-    files = glob.glob(os.path.join(path_pattern, '*.txt'), recursive=True) + \
-            glob.glob(os.path.join(path_pattern, '*.md'), recursive=True)
     
-    for file_path in files:
+    files_to_process = []
+    if specific_file:
+        if os.path.exists(specific_file):
+            files_to_process.append(specific_file)
+            print(f"Processing specific file: {specific_file}")
+        else:
+            print(f"Error: The file was not found at {specific_file}")
+            return
+    else:
+        print("Scanning knowledge directory for .txt and .md files...")
+        path_pattern = os.path.join(KNOWLEDGE_PATH, '**')
+        files_to_process = glob.glob(os.path.join(path_pattern, '*.txt'), recursive=True) + \
+                         glob.glob(os.path.join(path_pattern, '*.md'), recursive=True)
+
+    for file_path in files_to_process:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -99,6 +110,7 @@ def process_knowledge_files():
             print(f"  - Processed {file_name}")
         except Exception as e:
             print(f"Error processing file {file_path}: {e}")
+
 
 def chunk_document(doc):
     """Splits a document's text into overlapping chunks."""
@@ -129,6 +141,7 @@ def main():
     parser.add_argument("--use-local-llm", action="store_true", help="Use the local LLM for ticket processing instead of the Gemini API.")
     parser.add_argument("--ingest-tickets", action="store_true", help="Ingest only ticket data.")
     parser.add_argument("--ingest-knowledge", action="store_true", help="Ingest only knowledge base data.")
+    parser.add_argument("--file", type=str, default=None, help="Path to a specific knowledge file to ingest. Overrides the default behavior of scanning the whole knowledge directory.")
     args = parser.parse_args()
 
     print("Starting data ingestion pipeline...")
@@ -143,6 +156,10 @@ def main():
     ingest_tickets = args.ingest_tickets
     ingest_knowledge = args.ingest_knowledge
 
+    # If a specific file is provided, ensure knowledge ingestion is enabled
+    if args.file:
+        ingest_knowledge = True
+
     # If neither is specified, ingest both by default
     if not ingest_tickets and not ingest_knowledge:
         ingest_tickets = True
@@ -154,7 +171,7 @@ def main():
         all_docs_generators.append(process_tickets_in_chunks(ticket_processor_agent))
     if ingest_knowledge:
         print("Ingesting knowledge base data...")
-        all_docs_generators.append(process_knowledge_files())
+        all_docs_generators.append(process_knowledge_files(specific_file=args.file))
 
     if not all_docs_generators:
         print("No data type selected for ingestion. Please specify --ingest-tickets or --ingest-knowledge.")

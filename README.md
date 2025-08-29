@@ -108,6 +108,7 @@ You can use the following flags to customize the ingestion behavior:
 *   `--use-local-llm`: Uses a local Gemma model for ticket processing instead of the Gemini API.
 *   `--ingest-tickets`: Ingests only ticket data. If this flag is used, knowledge documents will be skipped.
 *   `--ingest-knowledge`: Ingests only knowledge base data. If this flag is used, ticket data will be skipped.
+*   `--file <path_to_file>`: Ingests only a single, specified knowledge file. This is useful for adding new documents without re-processing the entire knowledge base. When this flag is used, `--ingest-knowledge` is implicitly enabled.
 
 You can use these flags separately or together. For example:
 
@@ -117,6 +118,9 @@ python src/ingest.py --clear-db --ingest-knowledge
 
 # Ingest only ticket data using the local LLM
 python src/ingest.py --ingest-tickets --use-local-llm
+
+# Ingest a single new knowledge file
+python src/ingest.py --file data/knowledge/macros.md
 ```
 
 *   **Important**: The first time you run the ingestion script, it is recommended to use the `--clear-db` flag to ensure a clean database.
